@@ -45,8 +45,8 @@ jobs:
     - name: Set Up Doxygen
       if: steps.check_new_version.outputs.IS_NEW == 'true'
       run: |
-        sudo apt install update
-        sudo apt install doxygen
+        sudo apt update
+        sudo apt-get install doxygen
     
     - name: Generate Documentation
       if: steps.check_new_version.outputs.IS_NEW == 'true'
