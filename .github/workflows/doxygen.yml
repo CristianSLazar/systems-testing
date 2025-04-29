@@ -1,0 +1,66 @@
+name: cicd-documentation
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  version_check_and_process:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get the new tag
+      id: get_new_tag
+      run: echo "NEW_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Get existing tags (sorted)
+      id: get_existing_tags
+      run: git tag --sort=v:refname
+
+    - name: Check if it's a new version
+      id: check_new_version
+      run: |
+        new_tag="${{ steps.get_new_tag.outputs.NEW_TAG }}"
+        existing_tags=$(echo "${{ steps.get_existing_tags.outputs }}" | tr '\n' ' ')
+        is_new="true"
+
+        if [[ "$existing_tags" =~ "$new_tag" ]]; then
+          echo "Tag '$new_tag' already exists. Skipping."
+          is_new="false"
+        else
+          echo "Tag '$new_tag' is a new tag."
+        fi
+        echo "IS_NEW=$is_new" >> $GITHUB_OUTPUT
+    
+    - name: Proceed with build and release (if new version)
+      if: steps.check_new_version.outputs.IS_NEW == 'true'
+      run: |
+        echo "Performing build and release for new version: ${{ steps.get_new_tag.outputs.NEW_TAG }}"
+
+    - name: Set Up Doxygen
+      if: steps.check_new_version.outputs.IS_NEW == 'true'
+      run: |
+        sudo apt install update
+        sudo apt install doxygen
+    
+    - name: Generate Documentation
+      if: steps.check_new_version.outputs.IS_NEW == 'true'
+      run: |
+        doxygen -g
+        doxygen
+      working-directory: ./laboratories/cicd-documentation
+    
+    - name: Upload Documentation
+      if: steps.check_new_version.outputs.IS_NEW == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: doc-artifacts
+        path: |
+          ./laboratories/cicd-documentation/html/
+          ./laboratories/cicd-documentation/latex/
+    
