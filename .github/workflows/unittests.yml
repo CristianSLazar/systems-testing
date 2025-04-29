@@ -1,0 +1,29 @@
+name: unittests
+
+on: [push, pull_request]
+
+jobs:
+  run:
+    name: unittests
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+      
+      - name: install deps
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install pytest
+
+      - name: unittests
+        shell: bash
+        run: |
+          pytest unittests.py
+        working-directory: ./laboratories/cicd-documentation
